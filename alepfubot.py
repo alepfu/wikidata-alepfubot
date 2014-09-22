@@ -81,13 +81,23 @@ class AlepfuBot:
             if preDrugId.startswith("DB"):
                 preDrugId = preDrugId[2:]
             
-            # Load the object and precipitant items  
+            # Load the object and precipitant items, if an item is missing the entry will be skipped  
             objDrugPage = pywikibot.Page(site, objDrug)
             objDrugItem = pywikibot.ItemPage.fromPage(objDrugPage)
-            objDrugItem.get()
+            if objDrugItem.exists():
+                objDrugItem.get()
+            else:
+                print "No item found for", objDrug    
+                print "Skipping entry"
+                continue
             preDrugPage = pywikibot.Page(site, preDrug)
             preDrugItem = pywikibot.ItemPage.fromPage(preDrugPage)
-            preDrugItem.get()
+            if preDrugItem.exists():
+                preDrugItem.get()
+            else:
+                print "No item found for", preDrug    
+                print "Skipping entry"
+                continue
 
             # Init the check flag, if this switches to false, the entry will be skipped
             isOk = True
@@ -127,7 +137,7 @@ class AlepfuBot:
                     objDrugItem.addClaim(claim)
                     claim.addSources([statedIn])
                 else:
-                    print "Bot is set dry"
+                    print "#### Bot is set dry ####"
             else:
                 print "Skipping entry"    
        
