@@ -89,10 +89,10 @@ class AlepfuBot:
         
         # Loop over all entries from the file        
         for row in csvReader:
-            objDrug = row[0]
-            objDrugId = row[1]
-            preDrug = row[2]
-            preDrugId = row[3]
+            objDrug = row[0].decode("utf-8")      # because reader delivers str
+            objDrugId = row[1].decode("utf-8")
+            preDrug = row[2].decode("utf-8")
+            preDrugId = row[3].decode("utf-8")
             print "Adding claim:", objDrug, objDrugId, preDrug, preDrugId
             
             # Remove prefix from DrugBank IDs
@@ -118,30 +118,32 @@ class AlepfuBot:
                 print "No item found for", preDrug    
                 print "Skipping entry"
                 continue
-
-            # Init the check flag, if this switches to false, the entry will be skipped
-            isOk = True
-            
+           
             # Check for correct DrugBank IDs
             print "Checking DrugBank IDs"
             if objDrugItem.claims:
                 if "P715" in objDrugItem.claims:
                     if not objDrugItem.claims["P715"][0].getTarget() == objDrugId:
-                        isOK = False
-                        print "Object ID is incorrect"                
+                        print "Object ID is incorrect"
+                        print "Skipping entry"
+                        continue                
             if preDrugItem.claims:
-               if "P715" in preDrugItem.claims:
-                   if not preDrugItem.claims["P715"][0].getTarget() == preDrugId:
-                       isOK = False
-                       print "Precipitant ID is incorrect"
+                if "P715" in preDrugItem.claims:
+                    if not preDrugItem.claims["P715"][0].getTarget() == preDrugId:
+                        print "Precipitant ID is incorrect"
+                        print "Skipping entry"
+                        continue            
             
+            # Init the check flag, if this switches to false, the entry will be skipped
+            isOk = True
+                        
             # Check for existing claims
             print "Checking for existing claims"
             preLabel = preDrugItem.labels.get("en")
             if objDrugItem.claims:
                 if "P769" in objDrugItem.claims:
                     precipitants = objDrugItem.claims["P769"]               
-                    for p in precipitants:
+                    for p in precipitants:                     # TODO make more elegant
                         pitem = p.getTarget();
                         pitem.get();
                         label = pitem.labels.get("en")
