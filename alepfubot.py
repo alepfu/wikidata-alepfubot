@@ -7,10 +7,11 @@ The following parameters are supported:
 
 &params;
 
--isDry              If given, doesn't do any real changes, but only logs
-                  what would have been changed.
-                  
-                  
+-dry              If set, nothing will be changed.
+
+-file=<url>       Full HTTP url to file.
+
+-delim=<char>     CSV delimiter character                  
 
 """
 #
@@ -23,6 +24,8 @@ __version__ = '$Id$'
 
 import pywikibot
 from pywikibot import pagegenerators
+import urllib
+import csv
 
 # This is required for the command line help
 docuReplacements = {
@@ -35,30 +38,39 @@ class AlepfuBot:
     Adds the claim "drug action altered by".
     """
     
-    def __init__(self, isDry):
+    def __init__(self, isDry, csvFile, delim):
         """
         Constructor
 
         Parameters:     
-            @param isDry: todo.                       
-            @type myparam: boolean.
+            @param isDry: If set, nothing will be changed.                      
+            @type isDry: boolean.
+            @param csvFile: Http-Link to remote file.                      
+            @type csvFile: unicode.
+            @param delim: CSV delimiter character                      
+            @type delim: unicode.
         """
+        
         self.isDry = isDry
+        self.csvFile = csvFile
+        self.delim = delim
 
     def run(self):
         """ 
         Steps:
-            1) todo
+            1) Download CSV file
+            2) Parse CSV file
+            3) Some checks regarding correctness
+            4) Add claims to wikidata
         """
         
-        # Init some test data
-        drugs = [{"object":"Atomoxetine", "objectid":"DB00289", "precip":"Isocarboxazid", "precipid":"DB01247"},
-                    {"object":"Atomoxetine", "objectid":"DB00289", "precip":"Phenelzine", "precipid":"DB00780"},
-                    {"object":"Atomoxetine", "objectid":"DB00289", "precip":"Procarbazine", "precipid":"DB01168"},
-                    {"object":"Atomoxetine", "objectid":"DB00289", "precip":"Selegiline", "precipid":"DB01037"},
-                    {"object":"Atomoxetine", "objectid":"DB00289", "precip":"Tranylcypromine", "precipid":"DB00752"}]
+        # Download CSV file
+        print "Downloading file", self.csvFile
+        fileName = self.csvFile[self.csvFile.rfind("/")+1:]
+        urllib.urlretrieve(self.csvFile, fileName)
+        print "File", fileName, "saved"
         
-        # Init site, repository, claim and source reference       
+        # Init site, repository, claim and source       
         site = pywikibot.Site("en", "wikipedia")
         repo = site.data_repository()
         claim = pywikibot.Claim(repo, u'P769')
@@ -66,13 +78,15 @@ class AlepfuBot:
         source = pywikibot.ItemPage(repo, "Q17505343")
         statedIn.setTarget(source)        
         
-        # Loop over all entries from the file
-        for drug in drugs:
-            objDrug = drug.get("object")
-            preDrug = drug.get("precip")
-            objDrugId = drug.get("objectid")
-            preDrugId = drug.get("precipid")
-            
+        # Open file       
+        csvReader = csv.reader(open(fileName, "rb"), delimiter=self.delim.encode('utf-8'))  # delimiter needs to be str
+        
+        # Loop over all entries from the file        
+        for row in csvReader:
+            objDrug = row[0]
+            objDrugId = row[1]
+            preDrug = row[2]
+            preDrugId = row[3]
             print "Adding claim:", objDrug, objDrugId, preDrug, preDrugId
             
             # Remove prefix from DrugBank IDs
@@ -137,7 +151,7 @@ class AlepfuBot:
                     objDrugItem.addClaim(claim)
                     claim.addSources([statedIn])
                 else:
-                    print "#### Bot is set dry ####"
+                    print "Bot is set dry"
             else:
                 print "Skipping entry"    
        
@@ -150,14 +164,20 @@ def main():
     
     # Init args variables
     isDry = False
+    csvFile = None
+    delim = None
     
     # Loop over the passed local args
     for arg in pywikibot.handleArgs():
         if arg.startswith("-dry"):
             isDry = True
- 
+        if arg.startswith("-file"):
+            csvFile = arg[arg.find("=")+1:]
+        if arg.startswith("-delim"):
+            delim = arg[arg.find("=")+1:]    
+
     # Run the bot
-    bot = AlepfuBot(isDry)
+    bot = AlepfuBot(isDry, csvFile, delim)
     bot.run()
 
 
