@@ -1,7 +1,9 @@
 #!/usr/bin/python
 # -*- coding: utf-8  -*-
 """
-AlepfuBot adds ...
+AlepfuBot adds the claim "drug action altered by" to drug items. Claims are 
+imported via a CSV file of the following format: 
+    "object-drug","DrugbankID","precipitant-drug","DrugbankID".
 
 The following parameters are supported:
 
@@ -11,8 +13,12 @@ The following parameters are supported:
 
 -file=<url>       Full HTTP url to file.
 
--delim=<char>     CSV delimiter character                  
+-delim=<char>     CSV delimiter character  
 
+
+Example usage:
+
+python alepfubot.py -file=http://www.example.com/data/file.csv -delim=$                
 """
 #
 # (C) Alexander Pfundner (Alepfu), 2014
@@ -35,7 +41,7 @@ docuReplacements = {
 
 class AlepfuBot:
     """
-    Adds the claim "drug action altered by".
+    Adds "drug action altered by" claims to drug items.
     """
     
     def __init__(self, isDry, csvFile, delim):
