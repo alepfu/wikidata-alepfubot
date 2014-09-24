@@ -3,7 +3,7 @@
 """
 AlepfuBot adds the claim "drug action altered by" to drug items. Claims are 
 imported via a CSV file of the following format: 
-    "object-drug","DrugbankID","precipitant-drug","DrugbankID".
+    "object-drug","DrugbankID","precipitant-drug","DrugbankID". 
 
 The following parameters are supported:
 
