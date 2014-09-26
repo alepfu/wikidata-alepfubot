@@ -1,24 +1,36 @@
 #!/usr/bin/python
 # -*- coding: utf-8  -*-
 """
-AlepfuBot adds the claim "drug action altered by" to drug items. Claims are 
-imported via a CSV file of the following format: 
-    "object-drug","DrugbankID","precipitant-drug","DrugbankID". 
-
-The following parameters are supported:
-
-&params;
-
--dry              If set, nothing will be changed.
-
--file=<url>       Full HTTP url to file.
-
--delim=<char>     CSV delimiter character  
+AlepfuBot adds the claim "drug action altered by" to drug items.
+Claims are imported via a headless CSV file of the following format: 
+    "object-drug","DrugbankID","precipitant-drug","DrugbankID".
+If a drug has no item in Wikidata, the claim will be skipped.
+If DrugbankIDs don't match, the claim will be skipped. 
 
 
 Example usage:
 
-python alepfubot.py -file=http://www.example.com/data/file.csv -delim=$                
+python alepfubot.py -file=http://www.example.com/data/file.csv -delim=$ -ref=Q17505343
+
+
+Mandatory parameters:
+
+-file=<url>      Full HTTP url to file
+
+-ref=<item>      Wikidata item of the source you want to reference
+
+
+Optional parameters:
+
+-delim=<char>    CSV delimiter character, default is ','  
+
+-dry             If set, nothing will be changed
+
+
+Other parameters:
+
+&params;
+                   
 """
 #
 # (C) Alexander Pfundner (Alepfu), 2014
@@ -44,7 +56,7 @@ class AlepfuBot:
     Adds "drug action altered by" claims to drug items.
     """
     
-    def __init__(self, isDry, csvFile, delim):
+    def __init__(self, isDry, csvFile, delim, ref):
         """
         Constructor
 
@@ -55,11 +67,14 @@ class AlepfuBot:
             @type csvFile: unicode.
             @param delim: CSV delimiter character                      
             @type delim: unicode.
+            @param ref: Wikidata item of the source you want to reference.                    
+            @type ref: unicode.
         """
         
         self.isDry = isDry
         self.csvFile = csvFile
         self.delim = delim
+        self.ref = ref
 
     def run(self):
         """ 
@@ -81,9 +96,9 @@ class AlepfuBot:
         repo = site.data_repository()
         claim = pywikibot.Claim(repo, u'P769')
         statedIn = pywikibot.Claim(repo, u'P248')
-        source = pywikibot.ItemPage(repo, "Q17505343")
-        statedIn.setTarget(source)        
-        
+        source = pywikibot.ItemPage(repo, self.ref)
+        statedIn.setTarget(source)   
+             
         # Open file       
         csvReader = csv.reader(open(fileName, "rb"), delimiter=self.delim.encode('utf-8'))  # delimiter needs to be str
         
@@ -97,7 +112,7 @@ class AlepfuBot:
             
             # Remove prefix from DrugBank IDs
             if objDrugId.startswith("DB"):
-                objDrugId = objDrugId[2:]            
+                objDrugId = objDrugId[2:]
             if preDrugId.startswith("DB"):
                 preDrugId = preDrugId[2:]
             
@@ -107,7 +122,7 @@ class AlepfuBot:
             if objDrugItem.exists():
                 objDrugItem.get()
             else:
-                print "No item found for", objDrug    
+                print "No item found for object drug"    
                 print "Skipping entry"
                 continue
             preDrugPage = pywikibot.Page(site, preDrug)
@@ -115,7 +130,7 @@ class AlepfuBot:
             if preDrugItem.exists():
                 preDrugItem.get()
             else:
-                print "No item found for", preDrug    
+                print "No item found for precipitant drug"    
                 print "Skipping entry"
                 continue
            
@@ -133,37 +148,35 @@ class AlepfuBot:
                         print "Precipitant ID is incorrect"
                         print "Skipping entry"
                         continue            
-            
-            # Init the check flag, if this switches to false, the entry will be skipped
-            isOk = True
                         
             # Check for existing claims
             print "Checking for existing claims"
+            isExist = False
             preLabel = preDrugItem.labels.get("en")
             if objDrugItem.claims:
                 if "P769" in objDrugItem.claims:
-                    precipitants = objDrugItem.claims["P769"]               
-                    for p in precipitants:                     # TODO make more elegant
+                    precipitants = objDrugItem.claims["P769"]
+                    for p in precipitants:                     
                         pitem = p.getTarget();
                         pitem.get();
                         label = pitem.labels.get("en")
-                        if label == preLabel: 
-                            isOk = False
-                            print "Found entry for precipitant", label          
+                        if label == preLabel:                         
+                            isExist = True
+                            break
+            if isExist:
+                print "Found entry for precipitant"
+                print "Skipping entry"
+                continue                          
 
-            # Skip entry if a check failed
-            if isOk:
-                print "Applying changes"
-                if not self.isDry:
-                    claim.setTarget(preDrugItem)    
-                    objDrugItem.addClaim(claim)
-                    claim.addSources([statedIn])
-                else:
-                    print "Bot is set dry"
+            # Dry check
+            if self.isDry:
+                print "Bot is set dry"
             else:
-                print "Skipping entry"    
-       
-            
+                print "Applying changes"    
+                claim.setTarget(preDrugItem)    
+                objDrugItem.addClaim(claim)
+                claim.addSources([statedIn])
+                
  
 def main():
     """
@@ -173,7 +186,8 @@ def main():
     # Init args variables
     isDry = False
     csvFile = None
-    delim = None
+    delim = ","
+    ref = None
     
     # Loop over the passed local args
     for arg in pywikibot.handleArgs():
@@ -182,11 +196,19 @@ def main():
         if arg.startswith("-file"):
             csvFile = arg[arg.find("=")+1:]
         if arg.startswith("-delim"):
-            delim = arg[arg.find("=")+1:]    
+            delim = arg[arg.find("=")+1:] 
+        if arg.startswith("-ref"):
+            ref = arg[arg.find("=")+1:]        
 
-    # Run the bot
-    bot = AlepfuBot(isDry, csvFile, delim)
-    bot.run()
+    # Run the bot, if mandatory args are provided
+    if csvFile and ref:
+        bot = AlepfuBot(isDry, csvFile, delim, ref)
+        bot.run()
+    else:
+        if not csvFile:
+            print "Mandatory parameter -file is missing"
+        if not ref:
+            print "Mandatory parameter -ref is missing"    
 
 
 if __name__ == "__main__":
