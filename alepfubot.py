@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8  -*-
 """
-AlepfuBot adds the claim "drug action altered by" to drug items.
+AlepfuBot adds the claim "significant drug interaction (P769)" to drug items.
 Claims are imported via a headless CSV file of the following format: 
     "object-drug","DrugbankID","precipitant-drug","DrugbankID".
 If a drug has no item in Wikidata, the claim will be skipped.
@@ -53,7 +53,7 @@ docuReplacements = {
 
 class AlepfuBot:
     """
-    Adds "drug action altered by" claims to drug items.
+    Adds "significant drug interaction (P769)" claims to drug items.
     """
     
     def __init__(self, isDry, csvFile, delim, ref):
