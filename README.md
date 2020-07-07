@@ -1,7 +1,6 @@
-Wikidata
+Wikidata - AlepfuBot
 ========
 
-#### AlepfuBot
 * Adds "significant drug interaction (P769)" claims to drug items.
 * Part of a pilot study on how to utilize Wikidata to improve medical content in Wikipedia
 * [Bot Request for Permissions] (https://www.wikidata.org/wiki/Wikidata:Requests_for_permissions/Bot/AlepfuBot)
